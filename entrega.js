@@ -1,66 +1,85 @@
-const fs = require('fs');
+const express = require('express')
+const app = express()
 
-class ProductManager {
-  constructor(path) {
-    this.path = path;
-    this.lastId = 0;
-    const products = this.getAllProducts();
-    if (products.length > 0) {
-      this.lastId = products[products.length - 1].id;
-    }
+const products = [
+  {
+    id: 1,
+    name: 'Producto 1',
+    description: 'Descripción del producto 1',
+    price: 10.0
+  },
+  {
+    id: 2,
+    name: 'Producto 2',
+    description: 'Descripción del producto 2',
+    price: 20.0
+  },
+  {
+    id: 3,
+    name: 'Producto 3',
+    description: 'Descripción del producto 3',
+    price: 30.0
+  },
+  {
+    id: 4,
+    name: 'Producto 4',
+    description: 'Descripción del producto 4',
+    price: 40.0
+  },
+  {
+    id: 5,
+    name: 'Producto 5',
+    description: 'Descripción del producto 5',
+    price: 50.0
+  },
+  {
+    id: 6,
+    name: 'Producto 6',
+    description: 'Descripción del producto 6',
+    price: 60.0
+  },
+  {
+    id: 7,
+    name: 'Producto 7',
+    description: 'Descripción del producto 7',
+    price: 70.0
+  },
+  {
+    id: 8,
+    name: 'Producto 8',
+    description: 'Descripción del producto 8',
+    price: 80.0
+  },
+  {
+    id: 9,
+    name: 'Producto 9',
+    description: 'Descripción del producto 9',
+    price: 90.0
+  },
+  {
+    id: 10,
+    name: 'Producto 10',
+    description: 'Descripción del producto 10',
+    price: 100.0
   }
+]
 
-  addProduct(product) {
-    product.id = ++this.lastId;
-    const products = this.getAllProducts();
-    products.push(product);
-    this.saveProducts(products);
+app.get('/products', (req, res) => {
+  const limit = parseInt(req.query.limit)
+  const result = limit ? products.slice(0, limit) : products
+  res.json(result)
+})
+
+app.get('/products/:id', (req, res) => {
+  const id = parseInt(req.params.id)
+  const product = products.find(p => p.id === id)
+  if (product) {
+    res.json(product)
+  } else {
+    res.status(404).json({ error: 'El producto no existe' })
   }
+})
 
-  getAllProducts() {
-    try {
-      const data = fs.readFileSync(this.path, 'utf-8');
-      return JSON.parse(data);
-    } catch (error) {
-      return [];
-    }
-  }
-
-  getProductById(id) {
-    const products = this.getAllProducts();
-    return products.find(product => product.id === id);
-  }
-
-  updateProductById(id, updatedProduct) {
-    const products = this.getAllProducts();
-    const index = products.findIndex(product => product.id === id);
-    if (index !== -1) {
-      updatedProduct.id = id;
-      products[index] = updatedProduct;
-      this.saveProducts(products);
-    }
-  }
-
-  deleteProductById(id) {
-    const products = this.getAllProducts();
-    const filteredProducts = products.filter(product => product.id !== id);
-    this.saveProducts(filteredProducts);
-  }
-
-  saveProducts(products) {
-    const data = JSON.stringify(products, null, 2);
-    fs.writeFileSync(this.path, data);
-  }
-}
-
-
-const productManager = new ProductManager('./products.json');
-const product = {
-  title: 'Producto de prueba',
-  description: 'Esta es una descripción de prueba',
-  price: 9.99,
-  thumbnail: 'https://example.com/thumbnail.jpg',
-  code: 'ABC123',
-  stock: 10
-};
-productManager.addProduct(product);
+app.listen(8080, () => {
+  console.log('Servidor corriendo en http://localhost:8080')
+})
