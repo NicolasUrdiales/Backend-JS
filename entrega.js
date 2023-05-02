@@ -1,85 +1,119 @@
-const express = require('express')
-const app = express()
+const express = require('express');
+const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 
-const products = [
-  {
-    id: 1,
-    name: 'Producto 1',
-    description: 'Descripción del producto 1',
-    price: 10.0
-  },
-  {
-    id: 2,
-    name: 'Producto 2',
-    description: 'Descripción del producto 2',
-    price: 20.0
-  },
-  {
-    id: 3,
-    name: 'Producto 3',
-    description: 'Descripción del producto 3',
-    price: 30.0
-  },
-  {
-    id: 4,
-    name: 'Producto 4',
-    description: 'Descripción del producto 4',
-    price: 40.0
-  },
-  {
-    id: 5,
-    name: 'Producto 5',
-    description: 'Descripción del producto 5',
-    price: 50.0
-  },
-  {
-    id: 6,
-    name: 'Producto 6',
-    description: 'Descripción del producto 6',
-    price: 60.0
-  },
-  {
-    id: 7,
-    name: 'Producto 7',
-    description: 'Descripción del producto 7',
-    price: 70.0
-  },
-  {
-    id: 8,
-    name: 'Producto 8',
-    description: 'Descripción del producto 8',
-    price: 80.0
-  },
-  {
-    id: 9,
-    name: 'Producto 9',
-    description: 'Descripción del producto 9',
-    price: 90.0
-  },
-  {
-    id: 10,
-    name: 'Producto 10',
-    description: 'Descripción del producto 10',
-    price: 100.0
-  }
-]
+const app = express();
+const PORT = 8080;
 
-app.get('/products', (req, res) => {
-  const limit = parseInt(req.query.limit)
-  const result = limit ? products.slice(0, limit) : products
-  res.json(result)
-})
+// Middleware para manejar el cuerpo de las solicitudes en formato JSON
+app.use(express.json());
 
-app.get('/products/:id', (req, res) => {
-  const id = parseInt(req.params.id)
-  const product = products.find(p => p.id === id)
-  if (product) {
-    res.json(product)
-  } else {
-    res.status(404).json({ error: 'El producto no existe' })
-  }
-})
+// Middleware para permitir el acceso desde cualquier origen (CORS)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
+});
 
-app.listen(8080, () => {
-  console.log('Servidor corriendo en http://localhost:8080')
-})
+// Rutas para manejar los productos
+const productsRouter = express.Router();
+
+productsRouter.get('/', (req, res) => {
+  fs.readFile('productos.json', 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send('Error al leer el archivo de productos');
+      return;
+    }
+
+    let productos = JSON.parse(data);
+    
+    // Si se especifica un límite de productos, se aplicará la restricción
+    if (req.query.limit) {
+      productos = productos.slice(0, req.query.limit);
+    }
+
+    res.json(productos);
+  });
+});
+
+productsRouter.get('/:pid', (req, res) => {
+  fs.readFile('productos.json', 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send('Error al leer el archivo de productos');
+      return;
+    }
+
+    const productos = JSON.parse(data);
+    const producto = productos.find(p => p.id == req.params.pid);
+
+    if (!producto) {
+      res.status(404).send('Producto no encontrado');
+      return;
+    }
+
+    res.json(producto);
+  });
+});
+
+productsRouter.post('/', (req, res) => {
+  const newProduct = {
+    id: uuidv4(),
+    ...req.body,
+    status: true
+  };
+
+  fs.readFile('productos.json', 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send('Error al leer el archivo de productos');
+      return;
+    }
+
+    const productos = JSON.parse(data);
+    productos.push(newProduct);
+
+    fs.writeFile('productos.json', JSON.stringify(productos), (err) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Error al escribir en el archivo de productos');
+        return;
+      }
+
+      res.json(newProduct);
+    });
+  });
+});
+
+productsRouter.put('/:pid', (req, res) => {
+  fs.readFile('productos.json', 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send('Error al leer el archivo de productos');
+      return;
+    }
+
+    let productos = JSON.parse(data);
+    const index = productos.findIndex(p => p.id == req.params.pid);
+
+    if (index === -1) {
+      res.status(404).send('Producto no encontrado');
+      return;
+    }
+
+    productos[index] = {
+      id: req.params.pid,
+      ...req.body,
+      status: productos[index].status
+    };
+
+    fs.writeFile('productos.json', JSON.stringify(productos), (err) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Error al escribir en el archivo de productos');
+        return;
+      }
+
+      res.json(productos[index])});
+   
